@@ -28,38 +28,49 @@
 
         navigator.mediaDevices.getUserMedia({ video: true })
 .then(stream => {
-    // We need permission first before labels show up
-    stream.getTracks().forEach(track => track.stop());
+    // Show initial permission stream briefly
+    video.srcObject = stream;
 
-    return navigator.mediaDevices.enumerateDevices();
-})
-.then(devices => {
-    const videoDevices = devices.filter(d => d.kind === "videoinput");
+    // Wait 500ms to let device labels appear
+    setTimeout(() => {
+        // Stop initial tracks
+        stream.getTracks().forEach(track => track.stop());
 
-    if (videoDevices.length === 0) {
-        alert("No camera found.");
-        return;
-    }
+        // Enumerate cameras
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                const videoDevices = devices.filter(d => d.kind === "videoinput");
+                if(videoDevices.length === 0){
+                    alert("No camera found.");
+                    return;
+                }
 
-    // Try to find back/rear camera
-    let rearCamera = videoDevices.find(d =>
-        d.label.toLowerCase().includes("back") ||
-        d.label.toLowerCase().includes("rear")
-    );
+                // Find rear/back camera
+                let rearCamera = videoDevices.find(d =>
+                    d.label.toLowerCase().includes("back") ||
+                    d.label.toLowerCase().includes("rear")
+                );
 
-    // If not found, use last camera (usually rear on Android)
-    if (!rearCamera) {
-        rearCamera = videoDevices[videoDevices.length - 1];
-    }
+                // If not found, use last camera
+                if (!rearCamera) {
+                    rearCamera = videoDevices[videoDevices.length - 1];
+                }
 
-    return navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: rearCamera.deviceId } }
-    });
-})
-.then(stream => {
-    if (stream) {
-        video.srcObject = stream;
-    }
+                return navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: { exact: rearCamera.deviceId } }
+                });
+            })
+            .then(stream => {
+                if (stream) {
+                    video.srcObject = stream;
+                }
+            })
+            .catch(error => {
+                alert("Camera error: " + error.name);
+                console.error(error);
+            });
+
+    }, 500); // 0.5 seconds
 })
 .catch(error => {
     alert("Camera error: " + error.name);
@@ -70,6 +81,7 @@
     </script>
 </body>
 </html>
+
 
 
 
