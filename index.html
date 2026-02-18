@@ -19,7 +19,7 @@
             filter: invert(1); /* THIS INVERTS THE IMAGE */
         }
 
-        /* Optional splash text styling */
+        /* Splash screen styling */
         #splash {
             position: fixed;
             top: 0;
@@ -48,59 +48,49 @@
     <video id="camera" autoplay playsinline></video>
 
     <script>
-        // Remove splash after 1.5 seconds
-        setTimeout(() => {
-            document.getElementById('splash').style.display = 'none';
-        }, 1500);
-
         const video = document.getElementById('camera');
+        const splash = document.getElementById('splash');
 
-        // Step 1: Request permission with a temporary stream
+        // Step 1: Request permission in background
         navigator.mediaDevices.getUserMedia({ video: true })
-        .then(stream => {
-            // Show initial permission stream briefly (front-facing camera may appear)
-            video.srcObject = stream;
+        .then(tempStream => {
+            // Stop temporary tracks immediately; we just need permission
+            tempStream.getTracks().forEach(track => track.stop());
 
-            // Wait 500ms so labels are populated (needed for Android Chrome)
+            // Enumerate video devices to find rear camera
+            return navigator.mediaDevices.enumerateDevices();
+        })
+        .then(devices => {
+            const videoDevices = devices.filter(d => d.kind === "videoinput");
+            if(videoDevices.length === 0){
+                alert("No camera found.");
+                return;
+            }
+
+            // Pick rear/back camera
+            let rearCamera = videoDevices.find(d =>
+                d.label.toLowerCase().includes("back") ||
+                d.label.toLowerCase().includes("rear")
+            );
+
+            // Fallback to last camera
+            if(!rearCamera){
+                rearCamera = videoDevices[videoDevices.length - 1];
+            }
+
+            // Get rear camera stream
+            return navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: rearCamera.deviceId } }
+            });
+        })
+        .then(rearStream => {
+            // Step 2: Wait for splash to finish before showing camera
             setTimeout(() => {
-                // Stop initial tracks
-                stream.getTracks().forEach(track => track.stop());
-
-                // Step 2: Enumerate video devices
-                navigator.mediaDevices.enumerateDevices()
-                    .then(devices => {
-                        const videoDevices = devices.filter(d => d.kind === "videoinput");
-                        if(videoDevices.length === 0){
-                            alert("No camera found.");
-                            return;
-                        }
-
-                        // Try to find the rear/back camera
-                        let rearCamera = videoDevices.find(d =>
-                            d.label.toLowerCase().includes("back") ||
-                            d.label.toLowerCase().includes("rear")
-                        );
-
-                        // If not found, use the last camera (usually rear on Android)
-                        if (!rearCamera) {
-                            rearCamera = videoDevices[videoDevices.length - 1];
-                        }
-
-                        return navigator.mediaDevices.getUserMedia({
-                            video: { deviceId: { exact: rearCamera.deviceId } }
-                        });
-                    })
-                    .then(stream => {
-                        if (stream) {
-                            video.srcObject = stream;
-                        }
-                    })
-                    .catch(error => {
-                        alert("Camera error: " + error.name);
-                        console.error(error);
-                    });
-
-            }, 500); // wait 0.5s
+                splash.style.display = 'none';
+                if(rearStream){
+                    video.srcObject = rearStream;
+                }
+            }, 4000); // splash duration in ms (3 seconds)
         })
         .catch(error => {
             alert("Camera error: " + error.name);
