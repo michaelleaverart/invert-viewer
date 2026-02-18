@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Invert Viewer</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100%;
+            background: black;
+        }
+
+        video {
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            filter: invert(1); /* THIS INVERTS THE IMAGE */
+        }
+    </style>
+</head>
+<body>
+    <video id="camera" autoplay playsinline></video>
+
+    <script>
+        const video = document.getElementById('camera');
+
+        navigator.mediaDevices.enumerateDevices()
+            .then(devices => {
+                const videoDevices = devices.filter(d => d.kind === "videoinput");
+                if(videoDevices.length === 0){
+                    alert("No camera found.");
+                    return;
+                }
+
+                // pick the first camera available
+                const firstCamera = videoDevices[0];
+
+                return navigator.mediaDevices.getUserMedia({
+                    video: { deviceId: firstCamera.deviceId ? { ideal: firstCamera.deviceId } : undefined }
+                });
+            })
+            .then(stream => {
+                if(stream){
+                    video.srcObject = stream;
+                }
+            })
+            .catch(error => {
+                alert("Camera error: " + error.name);
+                console.error(error);
+            });
+    </script>
+</body>
+</html>
