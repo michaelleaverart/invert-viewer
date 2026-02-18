@@ -28,18 +28,34 @@
 
         navigator.mediaDevices.getUserMedia({
     video: {
-        facingMode: { ideal: "environment" }
+        facingMode: { exact: "environment" }
     }
 })
 .then(stream => {
     video.srcObject = stream;
 })
 .catch(error => {
+    console.error("Exact environment failed, trying fallback...", error);
+
+    // fallback if exact fails
+    return navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment" }
+    });
+})
+.then(stream => {
+    if (stream) {
+        video.srcObject = stream;
+    }
+})
+.catch(error => {
     alert("Camera error: " + error.name);
     console.error(error);
+});
+
 });
 
     </script>
 </body>
 </html>
+
 
