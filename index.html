@@ -26,30 +26,20 @@
     <script>
         const video = document.getElementById('camera');
 
-        navigator.mediaDevices.enumerateDevices()
-            .then(devices => {
-                const videoDevices = devices.filter(d => d.kind === "videoinput");
-                if(videoDevices.length === 0){
-                    alert("No camera found.");
-                    return;
-                }
+        navigator.mediaDevices.getUserMedia({
+    video: {
+        facingMode: { ideal: "environment" }
+    }
+})
+.then(stream => {
+    video.srcObject = stream;
+})
+.catch(error => {
+    alert("Camera error: " + error.name);
+    console.error(error);
+});
 
-                // pick the first camera available
-                const firstCamera = videoDevices[0];
-
-                return navigator.mediaDevices.getUserMedia({
-                    video: { deviceId: firstCamera.deviceId ? { ideal: firstCamera.deviceId } : undefined }
-                });
-            })
-            .then(stream => {
-                if(stream){
-                    video.srcObject = stream;
-                }
-            })
-            .catch(error => {
-                alert("Camera error: " + error.name);
-                console.error(error);
-            });
     </script>
 </body>
 </html>
+
